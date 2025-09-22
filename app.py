@@ -11,11 +11,9 @@ analisador = AnalisadorDeRede('nodes.csv', 'edges.csv')
 def index():
     return render_template('index.html')
 
-@app.route('/api/nodes', methods=['GET'])
-def get_nodes():
-    """Retorna apenas a lista de nós para o mapeamento no frontend."""
-    nodes_data = analisador.get_graph_data().get("nodes", [])
-    return jsonify(nodes_data)
+@app.route('/api/graph', methods=['GET'])
+def get_graph():
+    return jsonify(analisador.get_graph_data())
 
 @app.route('/api/shortest-path/<start_node>/<end_node>', methods=['GET'])
 def get_shortest_path(start_node, end_node):

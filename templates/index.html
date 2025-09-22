@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Calculadora de Rota de Rede</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
@@ -26,6 +27,10 @@
                 </div>
                 <button id="find-path-button">Encontrar Menor Caminho</button>
                 <div id="path-result"></div>
+            </div>
+            <div id="graph-container">
+                <h2>Visualização da Rede</h2>
+                <div id="graph-visualization"></div>
             </div>
         </main>
     </div>
