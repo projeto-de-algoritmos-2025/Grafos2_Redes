@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Calculadora de Rota de Rede</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Calculadora de Rota de Rede</h1>
+            <p>Encontre a rota com a menor latÃªncia entre dois roteadores.</p>
+        </header>
+        <main>
+            <div id="controls-container">
+                <h2>Encontrar Rota</h2>
+                <div class="input-group">
+                    <label for="start-node-input">Roteador de Origem:</label>
+                    <input type="text" id="start-node-input" placeholder="Ex: R1">
+                </div>
+                <div class="input-group">
+                    <label for="end-node-input">Roteador de Destino:</label>
+                    <input type="text" id="end-node-input" placeholder="Ex: R30">
+                </div>
+                <button id="find-path-button">Encontrar Menor Caminho</button>
+                <div id="path-result"></div>
+            </div>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
