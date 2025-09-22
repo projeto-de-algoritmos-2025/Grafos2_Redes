@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let network = null;
     let allNodes = null;
     let allEdges = null;
+    let isPathHighlighted = false;
     // Mapeia label para id
     let nodeMap = {};
 
@@ -18,6 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
             border: '#4a90e2',
             background: '#e8f0fe'
         }
+    };
+
+    const hoverNodeColor = {
+        border: '#27ae60', // Verde escuro para a borda
+        background: '#abebc6'  // Verde claro para o preenchimento
     };
 
     const options = {
@@ -58,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         interaction: {
             dragNodes: true,
             zoomView: true,
+            hover: true,
         }
     };
 
@@ -80,19 +87,105 @@ document.addEventListener('DOMContentLoaded', () => {
             const graphData = { nodes: allNodes, edges: allEdges };
             network = new vis.Network(graphContainer, graphData, options);
 
+            // Destaca os nós onde se passa o mouse 
+            network.on("hoverNode", function (params) {
+                if (isPathHighlighted) {
+                    return;
+                }
+                const hoveredNodeId = params.node;
+                const allGraphNodes = allNodes.get({ returnType: "Object" });
+                const allGraphEdges = allEdges.get();
+
+                for (const nodeId in allGraphNodes) {
+                    allGraphNodes[nodeId].color = { color: 'rgba(200, 200, 200, 0.5)' };
+                    allGraphNodes[nodeId].font = { color: 'rgba(200, 200, 200, 0.5)' };
+                }
+
+                // Obtém os nós vizinhos
+                const connectedNodes = network.getConnectedNodes(hoveredNodeId);
+
+                // Destaca o nó principal sob o mouse com a cor verde
+                allGraphNodes[hoveredNodeId].color = hoverNodeColor;
+                allGraphNodes[hoveredNodeId].font = { color: '#333' };
+
+                // Mantém os vizinhos com a cor azul padrão
+                connectedNodes.forEach(function (nodeId) {
+                    allGraphNodes[nodeId].color = defaultNodeColor;
+                    allGraphNodes[nodeId].font = { color: '#333' };
+                });
+
+                const edgeUpdates = allGraphEdges.map(edge => {
+                    if (edge.from == hoveredNodeId || edge.to == hoveredNodeId) {
+                        return { id: edge.id, color: '#666', width: 2 }; // Destaque dos vizinhos
+                    } else {
+                        return { id: edge.id, color: 'rgba(200, 200, 200, 0.3)', width: 1 };
+                    }
+                });
+
+                const nodeArray = Object.values(allGraphNodes);
+                allNodes.update(nodeArray);
+                allEdges.update(edgeUpdates);
+            });
+
+            network.on("blurNode", function (params) {
+                if (isPathHighlighted) {
+                    return;
+                }
+                resetGraphAppearance();
+            });
+
             const nodeUpdates = allNodes.get().map(node => ({
                 id: node.id,
-                color: defaultNodeColor
+                color: defaultNodeColor,
+                title: `Roteador: ${node.label}`
             }));
             allNodes.update(nodeUpdates);
+            setupNodeSelection();
 
         } catch (error) {
             graphContainer.innerHTML = `<p style="color: red;">Erro ao carregar a rede: ${error.message}</p>`;
         }
     }
 
+    // Configura a seleção de nós ao clicar
+    function setupNodeSelection() {
+        let startNodeSelected = false;
+
+        network.on("click", function (params) {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                const nodeLabel = allNodes.get(nodeId).label;
+
+                // Limpa a seleção anterior se ambos os campos estiverem preenchidos
+                if (startNodeInput.value && endNodeInput.value) {
+                    startNodeInput.value = '';
+                    endNodeInput.value = '';
+                    startNodeSelected = false;
+                    resetGraphAppearance();
+                }
+
+                if (!startNodeSelected) {
+                    startNodeInput.value = nodeLabel;
+                    allNodes.update({
+                        id: nodeId, color: {
+                            border: '#2ecc71', background: '#a9dfbf'
+                        }
+                    });
+                    startNodeSelected = true;
+                } else {
+                    endNodeInput.value = nodeLabel;
+                    allNodes.update({ id: nodeId, color: { border: '#2ecc71', background: '#a9dfbf' } });
+                    startNodeSelected = false;
+                }
+            }
+        });
+    }
+
     // Função que busca o caminho
     async function findAndHighlightPath() {
+        isPathHighlighted = false;
+        resetGraphAppearance();
+
         const startLabel = startNodeInput.value.trim().toLowerCase();
         const endLabel = endNodeInput.value.trim().toLowerCase();
 
@@ -109,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        resetGraphAppearance();
+        // resetGraphAppearance();
 
         try {
             const response = await fetch(`http://127.0.0.1:5001/api/shortest-path/${startNodeId}/${endNodeId}`);
@@ -126,8 +219,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             pathResultDiv.innerHTML = `<strong>Caminho Encontrado:</strong> ${result.path_labels.join(' → ')} <br> <strong>Latência Total:</strong> ${result.distance} ms`;
+            isPathHighlighted = true;
 
-            // Passa os nós e as arestas para a função
             highlightPath(result.path_nodes, result.path_edges);
 
         } catch (error) {
@@ -136,35 +229,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function highlightPath(pathNodes, pathEdges) {
-        const pathNodesSet = new Set(pathNodes);
-        const pathEdgesSet = new Set(pathEdges);
+        const animationDelay = 300; // Tempo em ms entre cada passo da animação
 
-        // Atualiza as cores dos nós
+        // Colore os nós que não estão no caminho de vermelho
+        const pathNodesSet = new Set(pathNodes);
         const nodeUpdates = allNodes.get().map(node => {
-            let color;
-            if (node.id === pathNodes[0] || node.id === pathNodes[pathNodes.length - 1]) {
-                color = { border: '#2ecc71', background: '#a9dfbf' }; // Verde: começo/fim do caminho
-            } else if (pathNodesSet.has(node.id)) {
-                color = { border: '#3498db', background: '#aed6f1' }; // Azul: caminho utilizado
-            } else {
-                color = { border: '#e74c3c', background: '#f5b7b1' }; // Vermelho: caminho não utilizados
+            if (!pathNodesSet.has(node.id)) {
+                return { id: node.id, color: { border: '#e74c3c', background: '#f5b7b1' } };
             }
-            return { id: node.id, color: color };
-        });
+            return null;
+        }).filter(Boolean); // Filtra os nulos
         allNodes.update(nodeUpdates);
 
-        // Atualiza as cores das arestas
-        const edgeUpdates = allEdges.get().map(edge => {
-            const isPathEdge = pathEdgesSet.has(edge.id);
-            return {
-                id: edge.id,
-                color: isPathEdge ? '#2c3e50' : '#e0e0e0',
-                width: isPathEdge ? 3 : 1
-            };
-        });
+        // Escurece as arestas
+        const edgeUpdates = allEdges.get().map(edge => ({ id: edge.id, color: '#e0e0e0', width: 1 }));
         allEdges.update(edgeUpdates);
+
+        // Animação do caminho
+        let i = 0;
+        function highlightNextStep() {
+            if (i >= pathNodes.length) return;
+
+            const currentNodeId = pathNodes[i];
+            let color;
+
+            if (i === 0) {
+                color = { border: '#2ecc71', background: '#a9dfbf' }; // Verde para o nó inicial, final e intermediários
+            } else if (i === pathNodes.length - 1) {
+                color = { border: '#2ecc71', background: '#a9dfbf' };
+            } else {
+                color = { border: '#2ecc71', background: '#a9dfbf' };
+            }
+
+            // Destaca o nó atual
+            allNodes.update([{ id: currentNodeId, color: color }]);
+
+            // Destaca a aresta que leva ao nó atual
+            if (i > 0) {
+                const currentEdgeId = pathEdges[i - 1];
+                allEdges.update([{ id: currentEdgeId, color: '#2c3e50', width: 3 }]);
+            }
+
+            i++;
+            setTimeout(highlightNextStep, animationDelay);
+        }
+
+        highlightNextStep();
     }
 
+    // Restaura a aparência padrão do grafo
     function resetGraphAppearance() {
         const nodeUpdates = allNodes.get().map(node => ({
             id: node.id,

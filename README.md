@@ -20,10 +20,10 @@ Página Inicial
 ![](images/image-1.png)
 
 Rota de R26 a R17
-![](image-2.png)
+![](images/image-2.png)
 
 Rota de R19 a R6    
-![](image.png)
+![](images/image.png)
 
 </center>
 
