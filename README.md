@@ -57,7 +57,7 @@ Abra seu navegador web e acesse o seguinte endereço: http://127.0.0.1:5001
 Selecione no grafo ou escreva o nome de dois roteadores distintos nos campos 'Roteador de Origem' e 'Roteador de Destino' e clique em 'Encontrar Menor Caminho' para que o sistema calcule o caminho de menor latência entre os disponíveis.
 
 ## Gravação  
-[Link para a gravação](https://www.youtube.com/watch?v=E2JLFcNlz1w)
+[Link para a gravação](https://www.youtube.com/watch?v=MpDFBVqXzaA&feature=youtu.be)
 
 
 
